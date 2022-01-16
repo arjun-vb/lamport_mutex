@@ -1,6 +1,6 @@
 import socket
 import os
-from thread import *
+#from thread import *
 from threading import Thread
 
 client_list = []
@@ -51,7 +51,6 @@ class Client(Thread):
 #def setup_connections():
 
 
-client_count = 0
 while True:
 	connection, client_address = ServerSocket.accept()
 	print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
