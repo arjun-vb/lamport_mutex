@@ -22,6 +22,8 @@ except socket.error as e:
 #Response = ClientSocket.recv(1024)
 while True:
     Input = raw_input('Say Something: ')
+    #mutex
+    #server transac
     ClientSocket.send(Input)
     Response = ClientSocket.recv(1024)
     print(Response)
