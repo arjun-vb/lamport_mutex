@@ -14,7 +14,10 @@ cport = input('Port: ')
 ClientSocket = socket.socket()
 ClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 ClientSocket.bind((host, cport))
-ClientSocket.listen(3)
+
+
+ClientSocket2 = socket.socket()
+ClientSocket2.listen(3)
 
 client2client = []
 
@@ -34,12 +37,13 @@ class Connections(Thread):
 
 	def handle_messages(self):
 		if self.server == True:
-			Input = raw_input('Say Something: ')
-			#mutex
-			#server transac
-			self.connection.send(Input)
-			Response = self.connection.recv(1024)
-			print(Response)
+			while True:
+				Input = raw_input('Say Something: ')
+				#mutex
+				#server transac
+				self.connection.send(Input)
+				Response = self.connection.recv(1024)
+				print(Response)
 		else:
 			while True:
 				Input = self.connection.recv(1024)
@@ -56,8 +60,8 @@ try:
 	new_connection.start()
 	if cport == 7002:
 		ClientSocket1 = socket.socket()
-		ClientSocket1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		ClientSocket1.bind((host, cport))
+		#ClientSocket1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		#ClientSocket1.bind((host, cport))
 		ClientSocket1.connect((host, 7001))
 		new_connection = Connections(ClientSocket1, host, port, False)
 		new_connection.start()
@@ -77,6 +81,7 @@ except socket.error as e:
 
 
 while True:
+	print("Im here")
 	connection, client_address = ClientSocket.accept()
 	print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
 	#new_client= Client(connection, client_address[0] , client_address[1])
@@ -86,3 +91,5 @@ while True:
 	client2client.append(new_connection)
 
 ClientSocket.close()
+ClientSocket2.close()
+ClientSocket1.close()
