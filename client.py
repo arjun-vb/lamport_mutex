@@ -1,95 +1,65 @@
 import socket
+
 from threading import Thread
 
+ip = '127.0.0.1'
 p1 = 7001
 p2 = 7002
 p3 = 7003
-
-host = '127.0.0.1'
-port = 7000
-
 
 cport = input('Port: ')
 
 ClientSocket = socket.socket()
 ClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-ClientSocket.bind((host, cport))
+ClientSocket.bind((ip, cport))
+host = '127.0.0.1'
+port = 7000
 
+resp= []
 
-ClientSocket2 = socket.socket()
-ClientSocket2.listen(3)
-
-client2client = []
-
-class Connections(Thread):
-	def __init__(self,connection,name,port,server):
-		Thread.__init__(self)
-		self.connection = connection
-		self.name = name
-		self.port = port
-		self.server = server
-
-	def run(self):
-		#self.invoke_client()
-		#self.setup_connections()
-		self.handle_messages()
-		self.connection.close()
-
-	def handle_messages(self):
-		if self.server == True:
-			while True:
-				Input = raw_input('Say Something: ')
-				#mutex
-				#server transac
-				self.connection.send(Input)
-				Response = self.connection.recv(1024)
-				print(Response)
-		else:
-			while True:
-				Input = self.connection.recv(1024)
-			
-				self.connection.sendall(Input)
-				#self.connection = temp
-
+lomportclock = ""
+requestQueue = [] # priority queue
+releaseMAP = []
 
 
 print('Waiting for connection')
 try:
 	ClientSocket.connect((host, port))
-	new_connection = Connections(ClientSocket, host, port, True)
-	new_connection.start()
-	if cport == 7002:
-		ClientSocket1 = socket.socket()
-		#ClientSocket1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		#ClientSocket1.bind((host, cport))
-		ClientSocket1.connect((host, 7001))
-		new_connection = Connections(ClientSocket1, host, port, False)
-		new_connection.start()
-		client2client.append(new_connection)
-
 except socket.error as e:
 	print(str(e))
 
-#Response = ClientSocket.recv(1024)
-#while True:
-#    Input = raw_input('Say Something: ')
-#    mutex
-#    server transac
-#    lientSocket.send(Input)
-#    Response = ClientSocket.recv(1024)
-#    print(Response)
+class Connections(Thread):
+	def __init__(self,connection):
+		Thread.__init__(self)
+		self.connection = connection
+
+	def run(self):
+		while True:
+			
+			Response = self.connection.recv(1024)
+			print(Response)
+
+			# reply - update reply map, 
+			# if eligible for trancation {
+				# pop for queue and execute the request   }
+			#release
+			# if eligible for tranction {
+				# pop for queue and execute the request   }
+			# request for resource from other clients
+				# send reply
+			# 
+
+
+new_connection = Connections(ClientSocket)
+new_connection.start()
 
 
 while True:
-	print("Im here")
-	connection, client_address = ClientSocket.accept()
-	print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
-	#new_client= Client(connection, client_address[0] , client_address[1])
-	#new_client.start()
-	new_connection = Connections(connection, client_address[0] , client_address[1], False)
-	new_connection.start()
-	client2client.append(new_connection)
+	Input = raw_input('Say Something: ')
+	#mutex function
+	#server transac
+	ClientSocket.send(Input)
+	#Response = self.connection.recv(1024)
+	#print(Response)
 
 ClientSocket.close()
-ClientSocket2.close()
-ClientSocket1.close()

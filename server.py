@@ -28,27 +28,13 @@ class Client(Thread):
 		self.port = port
 
 	def run(self):
-		#self.invoke_client()
-		#self.setup_connections()
 		self.handle_messages()
 		self.connection.close()
 
 	def handle_messages(self):
 		while True:
-			Input = self.connection.recv(1024)
-			#temp = self.connection
-			#if Input == "AB":
-			#	self.connection.connect((host, 7002))
-			#	self.connection.sendall("from A to B")
-			#elif Input == "BC":
-			#	self.connection.connect((host, 7003))
-			#	self.connection.sendall("from B to C")
-			#else:
-			self.connection.sendall(Input)
-			#self.connection = temp
-
-
-#def setup_connections():
+			request = self.connection.recv(1024)
+			self.connection.sendall(request)
 
 
 while True:
