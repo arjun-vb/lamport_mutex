@@ -55,50 +55,13 @@ class Server_Thread(Thread):
 			data = pickle.loads(request)
 			print(data.reqType)
 			print(data.fromPid)
-			if data.reqType == "MUTEX":
-				self.handle_mutex_request(data)
-			elif data.reqType == "REPLY":
-				self.handle_reply(data)
-			elif data.reqType == "RELEASE":
-				self.handle_release(data)
-			elif data.reqType == "BALANCE":
+			if data.reqType == "BALANCE":
 				self.handle_balance(data)
 			elif data.reqType == "LAST_BLOCK":
 				self.get_lastblock(data)
 			elif data.reqType == "ADD_BLOCK":
 				self.add_block(data)
 			
-			#self.connection.sendall(request)
-	def handle_mutex_request(self, data):
-		if data.fromPid == 1:
-			client_list[2].connection.sendall(pickle.dumps(data))
-			#client_list[3].connection.sendall(pickle.dumps(data))
-		if data.fromPid == 2:
-			client_list[1].connection.sendall(pickle.dumps(data))
-			#client_list[3].connection.sendall(pickle.dumps(data))
-		if data.fromPid == 3:
-			client_list[1].connection.sendall(pickle.dumps(data))
-			#client_list[2].connection.sendall(pickle.dumps(data))
-
-	def handle_reply(self, data):
-		if data.clock.pid == 1:
-			client_list[1].connection.sendall(pickle.dumps(data))
-		if data.clock.pid  == 2:
-			client_list[2].connection.sendall(pickle.dumps(data))
-		if data.clock.pid  == 3:
-			client_list[3].connection.sendall(pickle.dumps(data))
-
-	def handle_release(self, data):
-		if data.fromPid == 1:
-			client_list[2].connection.sendall(pickle.dumps(data))
-			#client_list[3].connection.sendall(pickle.dumps(data))
-		if data.fromPid == 2:
-			client_list[1].connection.sendall(pickle.dumps(data))
-			#client_list[3].connection.sendall(pickle.dumps(data))
-		if data.fromPid == 3:
-			client_list[1].connection.sendall(pickle.dumps(data))
-			#client_list[2].connection.sendall(pickle.dumps(data))
-
 	def handle_balance(self, data):
 		balance = 0
 		for blk in Blockchain:
@@ -108,7 +71,9 @@ class Server_Thread(Thread):
 			if blk.transaction.reciever == data.fromPid:
 				print("Entering receriver's print")
 				balance += int(blk.transaction.amount)
+		print("sending balance to client")
 		client_list[data.fromPid].connection.sendall(str(balance))
+		print("sending balance to client 2")
 
 	def get_lastblock(self, data):
 		client_list[data.fromPid].connection.sendall(pickle.dumps(Blockchain[-1]))
@@ -117,6 +82,12 @@ class Server_Thread(Thread):
 		Blockchain.append(data.block)
 		client_list[data.fromPid].connection.sendall("SUCCESSFUL")
 
+
+connection, client_address = ServerSocket.accept()
+print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
+new_client= Server_Thread(connection, client_address[0] , client_address[1])
+new_client.start()
+client_list[client_address[1]%7000] = new_client
 
 connection, client_address = ServerSocket.accept()
 print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
