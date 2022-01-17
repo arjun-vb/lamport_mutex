@@ -38,7 +38,7 @@ def initializeBlockchain():
 initializeBlockchain()
 
 
-class Client(Thread):
+class Server_Thread(Thread):
 	def __init__(self,connection,name,port):
 		Thread.__init__(self)
 		self.connection = connection
@@ -120,13 +120,13 @@ class Client(Thread):
 
 connection, client_address = ServerSocket.accept()
 print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
-new_client= Client(connection, client_address[0] , client_address[1])
+new_client= Server_Thread(connection, client_address[0] , client_address[1])
 new_client.start()
 client_list[client_address[1]%7000] = new_client
 
 connection, client_address = ServerSocket.accept()
 print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
-new_client= Client(connection, client_address[0] , client_address[1])
+new_client= Server_Thread(connection, client_address[0] , client_address[1])
 new_client.start()
 client_list[client_address[1]%7000] = new_client
 

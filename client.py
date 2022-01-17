@@ -25,10 +25,9 @@ else:
 
 myClock = LomportClock(0,pid)
 
-
-
 requestPriorityQueue = [] 
 replyCount = {}
+c2c_connections = {}
 
 
 ClientSocket = socket.socket()
@@ -37,13 +36,6 @@ ClientSocket.bind((ip, cport))
 host = '127.0.0.1'
 port = 7000
 user_input = ""
-
-try:
-	print("Connecting to server...")
-	ClientSocket.connect((host, port))
-	print("Connected")
-except socket.error as e:
-	print(str(e))
 
 class Connections(Thread):
 	def __init__(self,connection):
@@ -90,8 +82,8 @@ class Connections(Thread):
 	def handle_transaction(self, data):
 		if user_input == "BAL":
 			request = RequestMessage(pid,data.clock,"BALANCE")
-			self.connection.send(pickle.dumps(request))
-			balance = self.connection.recv(1024)
+			c2c_connections[0].send(pickle.dumps(request))
+			balance = c2c_connections[0].recv(1024)
 			print("Balance is " + str(balance))
 		else:
 			reciever, amount = user_input.split()
@@ -100,34 +92,71 @@ class Connections(Thread):
 			transaction = Transaction(int(pid), int(reciever), int(amount))
 
 			request = RequestMessage(pid,data.clock,"BALANCE")
-			self.connection.send(pickle.dumps(request))
-			balance = self.connection.recv(1024)
+			c2c_connections[0].send(pickle.dumps(request))
+			balance = c2c_connections[0].recv(1024)
 
 			print("balance now is : " + str(balance))
 
 			if int(balance) >= int(amount):
 				print("enter transaction 2")
 				request = RequestMessage(pid,data.clock,"LAST_BLOCK")
-				self.connection.send(pickle.dumps(request))
-				last_blck_str = self.connection.recv(1024)
+				c2c_connections[0].send(pickle.dumps(request))
+				last_blck_str = c2c_connections[0].recv(1024)
 				last_blck = pickle.loads(last_blck_str)
 				block = Block(hashlib.sha256(str(last_blck)).digest(), 
 					Transaction(transaction.sender,transaction.reciever,transaction.amount))
 				request = RequestMessage(pid,data.clock,"ADD_BLOCK", block)
-				self.connection.send(pickle.dumps(request))
+				c2c_connections[0].send(pickle.dumps(request))
 
-				message = self.connection.recv(1024)
+				message = c2c_connections[0].recv(1024)
 				print("Transaction was " + str(message))
 						
-
+try:
+	print("Connecting to server...")
+	ClientSocket.connect((host, port))
+	print("Connected")
+except socket.error as e:
+	print(str(e))
 
 new_connection = Connections(ClientSocket)
 new_connection.start()
+c2c_connections[0] = ClientSocket
 
 def getMutex(clock):
 	msg = RequestMessage(pid, clock, "MUTEX")
 	data_string = pickle.dumps(msg)
-	ClientSocket.sendall(data_string)
+	#ClientSocket.sendall(data_string)
+	if pid == 1:
+		c2c_connections[2].sendall(data_string)
+	elif pid == 2:
+		c2c_connections[1].sendall(data_string)
+
+if cport == 7001: 
+	client2client = socket.socket()
+	client2client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	client2client.bind((ip, 7010))
+	client2client.listen(2)
+
+	conn, client_address = client2client.accept()
+	print('Connected to: ' + client_address[0] + ':' + str(client_address[1]))
+	c2c_connections[2] = conn
+	new_client= Connections(conn)
+	new_client.start()
+
+if cport == 7002:
+	client2client = socket.socket()
+	client2client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	client2client.bind((ip, 7011))
+	
+	try:
+		client2client.connect((host, 7010))
+	except socket.error as e:
+		print(str(e))
+
+	c2c_connections[1] = client2client
+	new_connection = Connections(client2client)
+	new_connection.start()
+
 
 while True:
 	#print("Enter the operation you want to perform...\n")
