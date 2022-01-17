@@ -1,8 +1,9 @@
 class RequestMessage:
-	def __init__(self, fromPid, clock, reqType):
+	def __init__(self, fromPid, clock, reqType, block = None):
 		self.fromPid = fromPid
 		self.clock = clock
 		self.reqType = reqType
+		self.block = block
 
 class LomportClock:
 	def __init__(self, clock, pid):
@@ -22,6 +23,23 @@ class LomportClock:
 				return False
 		else:
 			return False
-			
+
 	def __str__(self):
 		return str(self.clock) + "." + str(self.pid)
+
+class Transaction:
+	def __init__(self, sender, reciever, amount):
+		self.sender = sender
+		self.reciever = reciever
+		self.amount = amount
+
+	def __str__(self):
+		return str(self.sender) + "|" + str(self.reciever) + "|" + str(self.amount)
+
+class Block:
+	def __init__(self, headerHash, transaction):
+		self.headerHash = headerHash
+		self.transaction = transaction
+
+	def __str__(self):
+		return str(self.headerHash) + "|" + str(self.transaction)

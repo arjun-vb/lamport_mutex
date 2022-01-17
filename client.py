@@ -1,6 +1,7 @@
 import socket, pickle
 from common import *
 import heapq
+import hashlib
 
 from threading import Thread
 
@@ -35,7 +36,7 @@ ClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 ClientSocket.bind((ip, cport))
 host = '127.0.0.1'
 port = 7000
-
+user_input = ""
 
 try:
 	print("Connecting to server...")
@@ -71,29 +72,53 @@ class Connections(Thread):
 				replyCount[str(data.clock)] += 1
 				if replyCount[str(data.clock)] == 1 and requestPriorityQueue[0].pid == pid:
 					print("Execute Transaction")
+					self.handle_transaction(data)
+					heapq.heappop(requestPriorityQueue)
 					release = RequestMessage(pid, data.clock, "RELEASE")
 					self.connection.send(pickle.dumps(release))
 
 			if data.reqType == "RELEASE":
 				print("Inside release")
 				heapq.heappop(requestPriorityQueue)
-				if len(requestPriorityQueue) > 0 and replyCount[str(requestPriorityQueue[0])] == 1 and requestPriorityQueue[0].pid == pid:
+				if len(requestPriorityQueue) > 0 and requestPriorityQueue[0].pid == pid and replyCount[str(requestPriorityQueue[0])] == 1:
 					print("Execute Transaction")
+					self.handle_transaction(data)
+					heapq.heappop(requestPriorityQueue)
 					release = RequestMessage(pid, data.clock, "RELEASE")
 					self.connection.send(pickle.dumps(release))
 
+	def handle_transaction(self, data):
+		if user_input == "BAL":
+			request = RequestMessage(pid,data.clock,"BALANCE")
+			self.connection.send(pickle.dumps(request))
+			balance = self.connection.recv(1024)
+			print("Balance is " + str(balance))
+		else:
+			reciever, amount = user_input.split()
+			print(reciever)
+			print(amount)
+			transaction = Transaction(int(pid), int(reciever), int(amount))
 
-			#print(Response)
+			request = RequestMessage(pid,data.clock,"BALANCE")
+			self.connection.send(pickle.dumps(request))
+			balance = self.connection.recv(1024)
 
-			# reply - update reply map, 
-			# if eligible for trancation {
-				# pop for queue and execute the request   }
-			#release
-			# if eligible for tranction {
-				# pop for queue and execute the request   }
-			# request for resource from other clients
-				# send reply
-			# 
+			print("balance now is : " + str(balance))
+
+			if int(balance) >= int(amount):
+				print("enter transaction 2")
+				request = RequestMessage(pid,data.clock,"LAST_BLOCK")
+				self.connection.send(pickle.dumps(request))
+				last_blck_str = self.connection.recv(1024)
+				last_blck = pickle.loads(last_blck_str)
+				block = Block(hashlib.sha256(str(last_blck)).digest(), 
+					Transaction(transaction.sender,transaction.reciever,transaction.amount))
+				request = RequestMessage(pid,data.clock,"ADD_BLOCK", block)
+				self.connection.send(pickle.dumps(request))
+
+				message = self.connection.recv(1024)
+				print("Transaction was " + str(message))
+						
 
 
 new_connection = Connections(ClientSocket)
@@ -105,7 +130,10 @@ def getMutex(clock):
 	ClientSocket.sendall(data_string)
 
 while True:
-	Input = raw_input('Say Something: ')
+	#print("Enter the operation you want to perform...\n")
+	##print("Enter BAL for balance \n")
+	#print("Enter RECIEVER AMOUNT for Transaction \n")
+	user_input = raw_input()
 	
 	myClock.incrementClock()
 	requestPriorityQueue.append(myClock)
