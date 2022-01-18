@@ -24,6 +24,9 @@ class LomportClock:
 		else:
 			return False
 
+	def updateClock(self, clock):
+		self.clock = max(self.clock, clock.clock) + 1
+
 	def __str__(self):
 		return str(self.clock) + "." + str(self.pid)
 

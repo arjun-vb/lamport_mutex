@@ -27,7 +27,7 @@ else:
 myClock = LomportClock(0,pid)
 
 requestPriorityQueue = [] 
-replyCount = {}
+replyCount = 0
 c2c_connections = {}
 
 
@@ -44,8 +44,9 @@ class Connections(Thread):
 		self.connection = connection
 
 	def run(self):
+		global replyCount
 		while True:
-			print("Entering pickle response at 48")
+			
 			response = self.connection.recv(1024)
 
 			data = pickle.loads(response)
@@ -53,43 +54,54 @@ class Connections(Thread):
 			print(data.clock.clock)
 			print(data.clock.pid)
 
+			myClock.updateClock(data.clock)
+
 			if data.reqType == "MUTEX":
 				requestPriorityQueue.append(data.clock)
 				heapq.heapify(requestPriorityQueue)
-				reply = RequestMessage(pid, data.clock, "REPLY")
+				
+				myClock.incrementClock()
+				reply = RequestMessage(pid, myClock, "REPLY")
 				self.connection.send(pickle.dumps(reply))
 			
 			if data.reqType == "REPLY":
 				#print ("Data clock at REPLY is " + str(data.clock.clock))
 				#print ("\n Data PID at REPLY is " + str(data.clock.pid))
 				print(str(data.clock))
-				replyCount[str(data.clock)] += 1
-				if replyCount[str(data.clock)] == 2 and requestPriorityQueue[0].pid == pid:
+				replyCount += 1
+				if replyCount == 2 and requestPriorityQueue[0].pid == pid:
 					print("Execute Transaction")
 					self.handle_transaction(data)
 					heapq.heappop(requestPriorityQueue)
 					heapq.heapify(requestPriorityQueue)
-					release = RequestMessage(pid, data.clock, "RELEASE")
+					replyCount = 0
+					release = RequestMessage(pid, myClock, "RELEASE")
+					myClock.incrementClock()
 					broadcast(pickle.dumps(release))
 
 			if data.reqType == "RELEASE":
 				print("Inside release")
 				heapq.heappop(requestPriorityQueue)
 				heapq.heapify(requestPriorityQueue)
-				if len(requestPriorityQueue) > 0 and requestPriorityQueue[0].pid == pid and replyCount[str(requestPriorityQueue[0])] == 2:
+				if len(requestPriorityQueue) > 0 and requestPriorityQueue[0].pid == pid and replyCount == 2:
 					print("Execute Transaction")
 					self.handle_transaction(data)
 					heapq.heappop(requestPriorityQueue)
 					heapq.heapify(requestPriorityQueue)
-					release = RequestMessage(pid, data.clock, "RELEASE")
+					replyCount = 0
+					release = RequestMessage(pid, myClock, "RELEASE")
+					myClock.incrementClock()
 					broadcast(pickle.dumps(release))
 
 	def handle_transaction(self, data):
 		if user_input == "BAL":
-			request = RequestMessage(pid,data.clock,"BALANCE")
+			request = RequestMessage(pid, myClock,"BALANCE")
+			myClock.incrementClock()
 			c2c_connections[0].sendall(pickle.dumps(request))
-			print("balance at 91")
+			#print("balance at 91")
+			
 			balance = c2c_connections[0].recv(1024)
+			myClock.incrementClock()
 			print("Balance is " + str(balance))
 		else:
 			reciever, amount = user_input.split()
@@ -97,24 +109,31 @@ class Connections(Thread):
 			print(amount)
 			transaction = Transaction(int(pid), int(reciever), int(amount))
 
-			request = RequestMessage(pid,data.clock,"BALANCE")
+			myClock.incrementClock()
+			request = RequestMessage(pid,myClock,"BALANCE")
 			c2c_connections[0].sendall(pickle.dumps(request))
 			balance = c2c_connections[0].recv(1024)
-
+			myClock.incrementClock()
 			print("balance now is : " + str(balance))
 
 			if int(balance) >= int(amount):
 				print("enter transaction 2")
-				request = RequestMessage(pid,data.clock,"LAST_BLOCK")
+				myClock.incrementClock()
+				request = RequestMessage(pid,myClock,"LAST_BLOCK")
 				c2c_connections[0].send(pickle.dumps(request))
 				last_blck_str = c2c_connections[0].recv(1024)
+				myClock.incrementClock()
+
 				last_blck = pickle.loads(last_blck_str)
 				block = Block(hashlib.sha256(str(last_blck)).digest(), 
 					Transaction(transaction.sender,transaction.reciever,transaction.amount))
 				request = RequestMessage(pid,data.clock,"ADD_BLOCK", block)
+
+				myClock.incrementClock()
 				c2c_connections[0].send(pickle.dumps(request))
 
 				message = c2c_connections[0].recv(1024)
+				myClock.incrementClock()
 				print("Transaction was " + str(message))
 						
 try:
@@ -124,8 +143,8 @@ try:
 except socket.error as e:
 	print(str(e))
 
-new_connection = Connections(ClientSocket)
-new_connection.start()
+#new_connection = Connections(ClientSocket)
+#new_connection.start()
 c2c_connections[0] = ClientSocket
 
 def getMutex(clock):
@@ -224,7 +243,7 @@ while True:
 	print ("Data clock at creation is " + str(myClock.clock))
 	print ("\n Data PID at creation is " + str(myClock.pid))
 	print(str(myClock))
-	replyCount[str(myClock)] = 0
+	replyCount = 0
 	
 	getMutex(myClock)
 
