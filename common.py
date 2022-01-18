@@ -5,7 +5,7 @@ class RequestMessage:
 		self.reqType = reqType
 		self.block = block
 
-class LomportClock:
+class LamportClock:
 	def __init__(self, clock, pid):
 		self.clock = clock
 		self.pid = pid

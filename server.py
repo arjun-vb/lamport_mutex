@@ -53,8 +53,8 @@ class Server_Thread(Thread):
 		while True:
 			request = self.connection.recv(1024)
 			data = pickle.loads(request)
-			print(data.reqType)
-			print(data.fromPid)
+			#print(data.reqType)
+			#print(data.fromPid)
 			if data.reqType == "BALANCE":
 				self.handle_balance(data)
 			elif data.reqType == "LAST_BLOCK":
@@ -66,14 +66,11 @@ class Server_Thread(Thread):
 		balance = 0
 		for blk in Blockchain:
 			if blk.transaction.sender == data.fromPid:
-				print("Entering sender's print")
 				balance -= int(blk.transaction.amount)
 			if blk.transaction.reciever == data.fromPid:
-				print("Entering receriver's print")
 				balance += int(blk.transaction.amount)
-		print("sending balance to client")
 		client_list[data.fromPid].connection.sendall(str(balance))
-		print("sending balance to client 2")
+		
 
 	def get_lastblock(self, data):
 		client_list[data.fromPid].connection.sendall(pickle.dumps(Blockchain[-1]))
@@ -103,10 +100,11 @@ client_list[client_address[1]%7000] = new_client
 
 
 def print_blockchain():
+	print("=======================================")
 	for blk in Blockchain:
-		print(str(blk))
-
-
+		print("Sender: " + str(blk.transaction.sender) + " | Reciever: " + str(blk.transaction.reciever)
+			+ " | Amount: " + str(blk.transaction.amount)) 
+	print("=======================================")
 while True:
 	user_input = raw_input()
 	if user_input == "PRINT":
