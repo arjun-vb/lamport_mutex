@@ -53,19 +53,16 @@ class Connections(Thread):
 
 			data = pickle.loads(response)
 
-			#print(data.clock.clock)
-			#print(data.clock.pid)
-
 			myClock.updateClock(data.clock)
-			print("Current clock of process " + str(pid) + " is " + str(myClock))
+			##print("Current clock of process " + str(pid) + " is " + str(myClock))
 
 			if data.reqType == "MUTEX":
 				requestPriorityQueue.append(LamportClock(data.clock.clock, data.clock.pid))
 				heapq.heapify(requestPriorityQueue)
-				
+				print("Request recieved from " + str(data.fromPid))
 				myClock.incrementClock()
 				print("Reply sent to " + str(data.fromPid))
-				print("Current clock of process " + str(pid) + " is " + str(myClock))
+				##print("Current clock of process " + str(pid) + " is " + str(myClock))
 				reply = RequestMessage(pid, myClock, "REPLY")
 
 				self.connection.send(pickle.dumps(reply))
@@ -90,7 +87,7 @@ class Connections(Thread):
 					replyCount = 0
 					release = RequestMessage(pid, myClock, "RELEASE")
 					myClock.incrementClock()
-					print("Current clock of process " + str(pid) + " is " + str(myClock))
+					##print("Current clock of process " + str(pid) + " is " + str(myClock))
 					broadcast(pickle.dumps(release))
 					transactionFlag = True
 
@@ -107,7 +104,7 @@ class Connections(Thread):
 					replyCount = 0
 					release = RequestMessage(pid, myClock, "RELEASE")
 					myClock.incrementClock()
-					print("Current clock of process " + str(pid) + " is " + str(myClock))
+					##print("Current clock of process " + str(pid) + " is " + str(myClock))
 					broadcast(pickle.dumps(release))
 					transactionFlag = True
 
@@ -116,13 +113,13 @@ class Connections(Thread):
 			request = RequestMessage(pid, myClock,"BALANCE")
 			myClock.incrementClock()
 			print("Balance request sent to server")
-			print("Current clock of process " + str(pid) + " is " + str(myClock))
+			##print("Current clock of process " + str(pid) + " is " + str(myClock))
 			c2c_connections[0].sendall(pickle.dumps(request))
 			#print("balance at 91")
 			
 			balance = c2c_connections[0].recv(1024)
 			myClock.incrementClock()
-			print("Current clock of process " + str(pid) + " is " + str(myClock))
+			##print("Current clock of process " + str(pid) + " is " + str(myClock))
 			print("Balance is " + str(balance))
 			transactionFlag = True
 		else:
@@ -131,46 +128,46 @@ class Connections(Thread):
 			transaction = Transaction(int(pid), int(reciever), int(amount))
 
 			myClock.incrementClock()
-			print("Current clock of process " + str(pid) + " is " + str(myClock))
+			##print("Current clock of process " + str(pid) + " is " + str(myClock))
 			print("Balance request sent to server")
 			request = RequestMessage(pid,myClock,"BALANCE")
 			c2c_connections[0].sendall(pickle.dumps(request))
 			balance = c2c_connections[0].recv(1024)
 			myClock.incrementClock()
-			print("Current clock of process " + str(pid) + " is " + str(myClock))
-			print("Balance is " + str(balance))
+			##print("Current clock of process " + str(pid) + " is " + str(myClock))
+			print("Balance before transaction " + str(balance))
 
 			if int(balance) >= int(amount):
 				
 				myClock.incrementClock()
-				print("Current clock of process " + str(pid) + " is " + str(myClock))
+				##print("Current clock of process " + str(pid) + " is " + str(myClock))
 				request = RequestMessage(pid,myClock,"LAST_BLOCK")
 				c2c_connections[0].send(pickle.dumps(request))
 				last_blck_str = c2c_connections[0].recv(1024)
 				
 				myClock.incrementClock()
-				print("Current clock of process " + str(pid) + " is " + str(myClock))
+				##print("Current clock of process " + str(pid) + " is " + str(myClock))
 				last_blck = pickle.loads(last_blck_str)
 				block = Block(hashlib.sha256(str(last_blck)).digest(), 
 					Transaction(transaction.sender,transaction.reciever,transaction.amount))
 				request = RequestMessage(pid,data.clock,"ADD_BLOCK", block)
 
 				myClock.incrementClock()
-				print("Current clock of process " + str(pid) + " is " + str(myClock))
+				##print("Current clock of process " + str(pid) + " is " + str(myClock))
 				c2c_connections[0].send(pickle.dumps(request))
 
 				message = c2c_connections[0].recv(1024)
 				myClock.incrementClock()
-				print("Current clock of process " + str(pid) + " is " + str(myClock))
+				#print("Current clock of process " + str(pid) + " is " + str(myClock))
 				print("Transaction was " + str(message))
+				print("Balance after transaction " + str(int(balance) - int(amount)))
 			else:
 				print("Insufficient Balance, cannot proceed with the transaction")
 			transactionFlag = True
 						
 try:
-	print("Connecting to server...")
 	ClientSocket.connect((host, port))
-	print("Connected")
+	print("Connected to server")
 except socket.error as e:
 	print(str(e))
 
@@ -183,6 +180,7 @@ def getMutex(clock):
 	data_string = pickle.dumps(msg)
 	#time.sleep(5)
 	broadcast(data_string)
+	print("Sending MUTEX request to other clients")
 	#ClientSocket.sendall(data_string)
 
 def broadcast(data):
@@ -221,6 +219,7 @@ if cport == 7002:
 	
 	try:
 		client2client.connect((host, 7010))
+		print('Connected to: ' + host + ':' + str(7010))
 	except socket.error as e:
 		print(str(e))
 
@@ -246,6 +245,7 @@ if cport == 7003:
 	
 	try:
 		client2client.connect((host, 7010))
+		print('Connected to: ' + host + ':' + str(7010))
 	except socket.error as e:
 		print(str(e))
 
@@ -259,6 +259,7 @@ if cport == 7003:
 	
 	try:
 		client2client.connect((host, 7021))
+		print('Connected to: ' + host + ':' + str(7021))
 	except socket.error as e:
 		print(str(e))
 
@@ -266,12 +267,15 @@ if cport == 7003:
 	new_connection1 = Connections(client2client)
 	new_connection1.start()
 
+print("Current Balance is $10")
 
 while True:
 	transactionFlag = False
-	print("For Balance - BAL")
-	print("For transferring money - RECV_ID AMOUNT Eg.(2 5)")
-	print("For quit - Q")
+	print("=======================================")
+	print("*For Balance - BAL")
+	print("*For transferring money - RECV_ID AMOUNT Eg.(2 5)")
+	print("*For quit - Q")
+	print("=======================================")
 	user_input = raw_input()
 
 	if user_input != "Q" and user_input != "BAL" and len(user_input.split()) != 2:
@@ -282,7 +286,7 @@ while True:
 		break
 	
 	myClock.incrementClock()
-	print("Current clock of process " + str(pid) + " is " + str(myClock))
+	#print("Current clock of process " + str(pid) + " is " + str(myClock))
 	requestPriorityQueue.append(LamportClock(myClock.clock, myClock.pid))
 	heapq.heapify(requestPriorityQueue)
 	#print ("Data clock at creation is " + str(myClock.clock))

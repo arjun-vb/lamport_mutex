@@ -4,6 +4,7 @@ import os
 from threading import Thread
 from common import *
 import hashlib
+import time
 
 client_list = {}
 
@@ -12,7 +13,7 @@ host = '127.0.0.1'
 port = 7000
 
 
-try:
+try:	
 	ServerSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	ServerSocket.bind((host, port))
 except socket.error as e:
@@ -63,6 +64,7 @@ class Server_Thread(Thread):
 				self.add_block(data)
 			
 	def handle_balance(self, data):
+		time.sleep(5)
 		balance = 0
 		for blk in Blockchain:
 			if blk.transaction.sender == data.fromPid:
@@ -106,6 +108,8 @@ def print_blockchain():
 			+ " | Amount: " + str(blk.transaction.amount)) 
 	print("=======================================")
 while True:
+	print("=======================================")
+
 	user_input = raw_input()
 	if user_input == "PRINT":
 		print_blockchain()
