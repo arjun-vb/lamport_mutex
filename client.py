@@ -39,15 +39,16 @@ class Connections(Thread):
 			#print("Current clock of process " + str(pid) + " is " + str(myClock))
 
 			if data.reqType == "MUTEX":
-				requestPriorityQueue.append(LamportClock(data.clock.clock, data.clock.pid))
+				requestPriorityQueue.append(LamportClock(data.reqClock.clock, data.reqClock.pid))
 				heapq.heapify(requestPriorityQueue)
 				print("REQUEST recieved from " + str(data.fromPid) + " at " + str(myClock))
 				myClock.incrementClock()
+				sleep()
 				print("REPLY sent to " + str(data.fromPid) + " at " + str(myClock))
 				#print("Current clock of process " + str(pid) + " is " + str(myClock))
 				reply = RequestMessage(pid, myClock, "REPLY")
-
 				self.connection.send(pickle.dumps(reply))
+				
 			
 			if data.reqType == "REPLY":
 				#if pid == 2:
@@ -58,6 +59,9 @@ class Connections(Thread):
 					#print("Execute Transaction")
 					#if pid == 2:
 					#	time.sleep(10)
+					print("Local Queue:")
+					for i in requestPriorityQueue:
+						print(str(i))
 					self.handle_transaction(data)
 					heapq.heappop(requestPriorityQueue)
 					heapq.heapify(requestPriorityQueue)
@@ -71,6 +75,9 @@ class Connections(Thread):
 
 			if data.reqType == "RELEASE":
 				#print("Inside release")
+				print("Local Queue:")
+				for i in requestPriorityQueue:
+					print(str(i))
 				print("RELEASE recieved from " + str(data.fromPid) + " at " + str(myClock))
 				heapq.heappop(requestPriorityQueue)
 				heapq.heapify(requestPriorityQueue)
@@ -91,6 +98,7 @@ class Connections(Thread):
 		if user_input == "BAL":
 			request = RequestMessage(pid, myClock,"BALANCE")
 			myClock.incrementClock()
+			sleep()
 			print("Balance request sent to server" + " at " + str(myClock))
 			#print("Current clock of process " + str(pid) + " is " + str(myClock))
 			c2c_connections[0].sendall(pickle.dumps(request))
@@ -99,6 +107,7 @@ class Connections(Thread):
 			balance = c2c_connections[0].recv(buff_size)
 			myClock.incrementClock()
 			#print("Current clock of process " + str(pid) + " is " + str(myClock))
+			sleep()
 			print("=============================")
 			print("Balance is " + str(balance))
 			print("=============================")
@@ -110,12 +119,14 @@ class Connections(Thread):
 
 			myClock.incrementClock()
 			#print("Current clock of process " + str(pid) + " is " + str(myClock))
+			sleep()
 			print("Balance request sent to server" + " at " + str(myClock))
 			request = RequestMessage(pid,myClock,"BALANCE")
 			c2c_connections[0].sendall(pickle.dumps(request))
 			balance = c2c_connections[0].recv(buff_size)
 			myClock.incrementClock()
 			#print("Current clock of process " + str(pid) + " is " + str(myClock))
+			sleep()
 			print("======================================")
 			print("Balance before transaction " + str(balance))
 
@@ -132,7 +143,7 @@ class Connections(Thread):
 				last_blck = pickle.loads(last_blck_str)
 				block = Block(hashlib.sha256(str(last_blck)).digest(), 
 					Transaction(transaction.sender,transaction.reciever,transaction.amount))
-				request = RequestMessage(pid,data.clock,"ADD_BLOCK", block)
+				request = RequestMessage(pid,data.clock,"ADD_BLOCK", None, block)
 
 				myClock.incrementClock()
 				#print("Current clock of process " + str(pid) + " is " + str(myClock))
@@ -150,29 +161,34 @@ class Connections(Thread):
 			#transactionFlag = True
 						
 
-def sendRequest(client, reqType):
+def sleep():
+	time.sleep(3)
+
+def sendRequest(client, reqType, reqClock):
 	myClock.incrementClock()
 	#print("Current clock of process " + str(pid) + " is " + str(myClock))
+	sleep()
 	if reqType == "MUTEX":
 		print("REQUEST sent to " + str(client) + " at " + str(myClock))
 	elif reqType == "RELEASE":
 		print("RELEASE sent to " + str(client) + " at " + str(myClock))
 
-	msg = RequestMessage(pid, myClock, reqType)
+	msg = RequestMessage(pid, myClock, reqType, reqClock)
 	data_string = pickle.dumps(msg)
 	c2c_connections[client].sendall(data_string)
+	
 
 
-def broadcast(reqType):
+def broadcast(reqType, reqClock = None):
 	if pid == 1:
-		sendRequest(2,reqType)
-		sendRequest(3,reqType)		
+		sendRequest(2,reqType,reqClock)
+		sendRequest(3,reqType,reqClock)	
 	elif pid == 2:		
-		sendRequest(1,reqType)
-		sendRequest(3,reqType)
+		sendRequest(1,reqType,reqClock)
+		sendRequest(3,reqType,reqClock)
 	elif pid == 3:		
-		sendRequest(1,reqType)
-		sendRequest(2,reqType)
+		sendRequest(1,reqType,reqClock)
+		sendRequest(2,reqType,reqClock)
 
 def closeSockets():
 	c2c_connections[0].close()
@@ -304,7 +320,7 @@ def main():
 		print("=======================================================")
 		print("| For Balance type 'BAL'                              |")
 		print("| For transferring money - RECV_ID AMOUNT Eg.(2 5)    |")
-		print("| To quit type 'Q'                                    |") 
+		#print("| To quit type 'Q'                                    |") 
 		print("=======================================================")
 		user_input = raw_input()
 
@@ -317,11 +333,12 @@ def main():
 		
 		myClock.incrementClock()
 		#print("Current clock of process " + str(pid) + " is " + str(myClock))
-		requestPriorityQueue.append(LamportClock(myClock.clock, myClock.pid))
+		requestClock = LamportClock(myClock.clock, myClock.pid)
+		requestPriorityQueue.append(requestClock)
 		heapq.heapify(requestPriorityQueue)
 		replyCount = 0
 		
-		broadcast("MUTEX")
+		broadcast("MUTEX", requestClock)
 
 		while transactionFlag == False:
 			a=1

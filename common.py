@@ -1,8 +1,9 @@
 class RequestMessage:
-	def __init__(self, fromPid, clock, reqType, block = None):
+	def __init__(self, fromPid, clock, reqType, reqClock = None, block = None):
 		self.fromPid = fromPid
 		self.clock = clock
 		self.reqType = reqType
+		self.reqClock = reqClock
 		self.block = block
 
 class LamportClock:

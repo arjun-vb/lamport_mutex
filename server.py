@@ -104,7 +104,7 @@ def main():
 	while True:
 		print("=========================================")
 		print("| Type 'BLOCK' to print the Blockchain  |")
-		print("| Type 'Q' to close the connection      |")
+		#print("| Type 'Q' to close the connection      |")
 		print("=========================================")
 		user_input = raw_input()
 		if user_input == "BLOCK":
